@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Project Details</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        div { margin-bottom: 10px; }
+        strong { display: inline-block; width: 120px; }
+        .back-link { display: block; margin-top: 20px; color: #007bff; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <h1>Project Details (ID: {{ project.id }})</h1>
+    <div><strong>Name:</strong> {{ project.name }}</div>
+    <div><strong>Source Type:</strong> {{ project.source_type }}</div>
+    <div><strong>Source URL:</strong> {{ project.source_url if project.source_url else 'N/A' }}</div>
+    <div><strong>Source Path:</strong> {{ project.source_path }}</div>
+    <div><strong>Main Script:</strong> {{ project.main_script }}</div>
+    <div><strong>Arguments:</strong> {{ project.arguments if project.arguments else 'N/A' }}</div>
+    <div><strong>Environment Type:</strong> {{ project.environment_type }}</div>
+
+    <a href="/" class="back-link">Back to Dashboard</a>
+</body>
+</html>

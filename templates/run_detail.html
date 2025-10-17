@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Run Details</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        div { margin-bottom: 10px; }
+        strong { display: inline-block; width: 120px; }
+        pre { background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
+        .back-link { display: block; margin-top: 20px; color: #007bff; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <h1>Run Details (ID: {{ run.id }})</h1>
+    <div><strong>Project ID:</strong> {{ run.project_id }}</div>
+    <div><strong>Schedule ID:</strong> {{ run.schedule_id if run.schedule_id else 'N/A' }}</div>
+    <div><strong>Status:</strong> {{ run.status }}</div>
+    <div><strong>Start Time:</strong> {{ run.start_time }}</div>
+    <div><strong>End Time:</strong> {{ run.end_time if run.end_time else 'N/A' }}</div>
+    <div><strong>Log Output:</strong></div>
+    <pre>{{ run.log_output if run.log_output else 'No log output' }}</pre>
+
+    <a href="/" class="back-link">Back to Dashboard</a>
+</body>
+</html>

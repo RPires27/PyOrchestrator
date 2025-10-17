@@ -30,6 +30,7 @@
                 <th>Source URL/Path</th>
                 <th>Main Script</th>
                 <th>Environment</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -41,6 +42,7 @@
                 <td>{{ project.source_url if project.source_url else project.source_path }}</td>
                 <td>{{ project.main_script }}</td>
                 <td>{{ project.environment_type }}</td>
+                <td><a href="/projects/{{ project.id }}">View</a></td>
             </tr>
             {% endfor %}
         </tbody>
@@ -54,6 +56,7 @@
                 <th>Name</th>
                 <th>Project ID</th>
                 <th>Cron Schedule</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -63,6 +66,7 @@
                 <td>{{ schedule.name }}</td>
                 <td>{{ schedule.project_id }}</td>
                 <td>{{ schedule.cron_schedule }}</td>
+                <td><a href="/schedules/{{ schedule.id }}">View</a></td>
             </tr>
             {% endfor %}
         </tbody>
@@ -79,6 +83,7 @@
                 <th>Start Time</th>
                 <th>End Time</th>
                 <th>Log Output</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -91,6 +96,7 @@
                 <td>{{ run.start_time }}</td>
                 <td>{{ run.end_time if run.end_time else 'N/A' }}</td>
                 <td><pre>{{ run.log_output if run.log_output else 'No log output' }}</pre></td>
+                <td><a href="/runs/{{ run.id }}">View</a></td>
             </tr>
             {% endfor %}
         </tbody>

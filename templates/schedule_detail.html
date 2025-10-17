@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Schedule Details</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        div { margin-bottom: 10px; }
+        strong { display: inline-block; width: 120px; }
+        .back-link { display: block; margin-top: 20px; color: #007bff; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <h1>Schedule Details (ID: {{ schedule.id }})</h1>
+    <div><strong>Name:</strong> {{ schedule.name }}</div>
+    <div><strong>Project ID:</strong> {{ schedule.project_id }}</div>
+    <div><strong>Cron Schedule:</strong> {{ schedule.cron_schedule }}</div>
+
+    <a href="/" class="back-link">Back to Dashboard</a>
+</body>
+</html>

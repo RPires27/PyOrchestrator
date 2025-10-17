@@ -106,6 +106,27 @@ async def create_schedule_from_form(
 
     return RedirectResponse(url="/", status_code=303)
 
+@app.get("/projects/{project_id}", response_class=HTMLResponse)
+async def project_detail(request: Request, project_id: int, db: Session = Depends(get_db)):
+    project = crud_project.get_project(db, project_id=project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return templates.TemplateResponse("project_detail.html", {"request": request, "project": project})
+
+@app.get("/schedules/{schedule_id}", response_class=HTMLResponse)
+async def schedule_detail(request: Request, schedule_id: int, db: Session = Depends(get_db)):
+    schedule = crud_schedule.get_schedule(db, schedule_id=schedule_id)
+    if schedule is None:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    return templates.TemplateResponse("schedule_detail.html", {"request": request, "schedule": schedule})
+
+@app.get("/runs/{run_id}", response_class=HTMLResponse)
+async def run_detail(request: Request, run_id: int, db: Session = Depends(get_db)):
+    run = crud_run.get_run(db, run_id=run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return templates.TemplateResponse("run_detail.html", {"request": request, "run": run})
+
 # Include the routers after the add routes
 app.include_router(projects.router)
 app.include_router(schedules.router)
