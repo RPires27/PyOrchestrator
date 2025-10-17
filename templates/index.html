@@ -2,10 +2,98 @@
 <html>
 <head>
     <title>PyOrchestrator Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1, h2 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .button-link { display: inline-block; padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px; }
+        .button-link:hover { background-color: #0056b3; }
+    </style>
 </head>
 <body>
-    <h1>{{ message }}</h1>
-    <p>This is the dashboard for your PyOrchestrator.</p>
-    <p>More content will be added here soon!</p>
+    <h1>PyOrchestrator Dashboard</h1>
+
+    <div>
+        <a href="/projects/add" class="button-link">Add New Project</a>
+        <a href="/schedules/add" class="button-link">Add New Schedule</a>
+    </div>
+
+    <h2>Projects</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Source Type</th>
+                <th>Source URL/Path</th>
+                <th>Main Script</th>
+                <th>Environment</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for project in projects %}
+            <tr>
+                <td>{{ project.id }}</td>
+                <td>{{ project.name }}</td>
+                <td>{{ project.source_type }}</td>
+                <td>{{ project.source_url if project.source_url else project.source_path }}</td>
+                <td>{{ project.main_script }}</td>
+                <td>{{ project.environment_type }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Schedules</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Project ID</th>
+                <th>Cron Schedule</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for schedule in schedules %}
+            <tr>
+                <td>{{ schedule.id }}</td>
+                <td>{{ schedule.name }}</td>
+                <td>{{ schedule.project_id }}</td>
+                <td>{{ schedule.cron_schedule }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Recent Runs</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Project ID</th>
+                <th>Schedule ID</th>
+                <th>Status</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Log Output</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for run in runs %}
+            <tr>
+                <td>{{ run.id }}</td>
+                <td>{{ run.project_id }}</td>
+                <td>{{ run.schedule_id if run.schedule_id else 'N/A' }}</td>
+                <td>{{ run.status }}</td>
+                <td>{{ run.start_time }}</td>
+                <td>{{ run.end_time if run.end_time else 'N/A' }}</td>
+                <td><pre>{{ run.log_output if run.log_output else 'No log output' }}</pre></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </body>
 </html>

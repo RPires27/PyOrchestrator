@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add New Project</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        form div { margin-bottom: 10px; }
+        label { display: inline-block; width: 120px; }
+        input[type="text"], select { width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        .back-link { display: block; margin-top: 20px; color: #007bff; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <h1>Add New Project</h1>
+    <form action="/projects/add" method="post">
+        <div>
+            <label for="name">Project Name:</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        <div>
+            <label for="source_type">Source Type:</label>
+            <select id="source_type" name="source_type" onchange="toggleSourceFields()" required>
+                <option value="Local">Local</option>
+                <option value="GitHub">GitHub</option>
+            </select>
+        </div>
+        <div id="source_url_field">
+            <label for="source_url">GitHub URL:</label>
+            <input type="text" id="source_url" name="source_url">
+        </div>
+        <div>
+            <label for="source_path">Source Path:</label>
+            <input type="text" id="source_path" name="source_path" required>
+        </div>
+        <div>
+            <label for="main_script">Main Script:</label>
+            <input type="text" id="main_script" name="main_script" required>
+        </div>
+        <div>
+            <label for="arguments">Arguments (optional):</label>
+            <input type="text" id="arguments" name="arguments">
+        </div>
+        <div>
+            <label for="environment_type">Environment Type:</label>
+            <select id="environment_type" name="environment_type" required>
+                <option value="uv">uv</option>
+                <option value="venv">venv</option>
+            </select>
+        </div>
+        <button type="submit">Add Project</button>
+    </form>
+
+    <a href="/" class="back-link">Back to Dashboard</a>
+
+    <script>
+        function toggleSourceFields() {
+            const sourceType = document.getElementById('source_type').value;
+            const sourceUrlField = document.getElementById('source_url_field');
+            if (sourceType === 'GitHub') {
+                sourceUrlField.style.display = 'block';
+                document.getElementById('source_url').setAttribute('required', 'required');
+            } else {
+                sourceUrlField.style.display = 'none';
+                document.getElementById('source_url').removeAttribute('required');
+            }
+        }
+        // Initial call to set visibility based on default value
+        toggleSourceFields();
+    </script>
+</body>
+</html>

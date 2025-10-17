@@ -1,16 +1,29 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, Form, Depends
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
 from app.database.base import engine, Base, SessionLocal
 from app.routes import projects, schedules, runs
 from app.services.scheduler import SchedulerService
 from app.crud import schedule as crud_schedule
+from app.crud import project as crud_project
+from app.crud import run as crud_run
+from app.schemas import project as schema_project
+from app.schemas import schedule as schema_schedule
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
 templates = Jinja2Templates(directory="templates")
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @app.on_event("startup")
 def startup_event():
@@ -27,10 +40,73 @@ def startup_event():
 def shutdown_event():
     app.state.scheduler.shutdown()
 
+@app.get("/", response_class=HTMLResponse)
+async def dashboard(request: Request, db: Session = Depends(get_db)):
+    projects_data = crud_project.get_projects(db)
+    schedules_data = crud_schedule.get_schedules(db)
+    runs_data = crud_run.get_runs(db, limit=10) # Get last 10 runs
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "projects": projects_data,
+        "schedules": schedules_data,
+        "runs": runs_data
+    })
+
+@app.get("/projects/add", response_class=HTMLResponse)
+async def add_project_form(request: Request):
+    return templates.TemplateResponse("add_project.html", {"request": request})
+
+@app.post("/projects/add", response_class=HTMLResponse)
+async def create_project_from_form(
+    request: Request,
+    name: str = Form(...),
+    source_type: str = Form(...),
+    source_url: str = Form(None),
+    source_path: str = Form(...),
+    main_script: str = Form(...),
+    arguments: str = Form(None),
+    environment_type: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    project_create = schema_project.ProjectCreate(
+        name=name,
+        source_type=source_type,
+        source_url=source_url if source_url else None,
+        source_path=source_path,
+        main_script=main_script,
+        arguments=arguments if arguments else None,
+        environment_type=environment_type
+    )
+    crud_project.create_project(db=db, project=project_create)
+    return RedirectResponse(url="/", status_code=303)
+
+@app.get("/schedules/add", response_class=HTMLResponse)
+async def add_schedule_form(request: Request, db: Session = Depends(get_db)):
+    projects_data = crud_project.get_projects(db)
+    return templates.TemplateResponse("add_schedule.html", {"request": request, "projects": projects_data})
+
+@app.post("/schedules/add", response_class=HTMLResponse)
+async def create_schedule_from_form(
+    request: Request,
+    name: str = Form(...),
+    project_id: int = Form(...),
+    cron_schedule: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    schedule_create = schema_schedule.ScheduleCreate(
+        name=name,
+        project_id=project_id,
+        cron_schedule=cron_schedule
+    )
+    db_schedule = crud_schedule.create_schedule(db=db, schedule=schedule_create)
+    
+    # Add to scheduler immediately
+    scheduler: SchedulerService = request.app.state.scheduler
+    scheduler.schedule_job(db_schedule.id, db_schedule.project_id, db_schedule.cron_schedule)
+
+    return RedirectResponse(url="/", status_code=303)
+
+# Include the routers after the add routes
 app.include_router(projects.router)
 app.include_router(schedules.router)
 app.include_router(runs.router)
-
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "message": "Welcome to the PyOrchestrator"})
