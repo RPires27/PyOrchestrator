@@ -10,6 +10,8 @@ from app.crud import project as crud_project
 from app.crud import run as crud_run
 from app.schemas import project as schema_project
 from app.schemas import schedule as schema_schedule
+from app.schemas import run as schema_run
+from app.services.executor import execute_script
 
 Base.metadata.create_all(bind=engine)
 
@@ -112,6 +114,15 @@ async def project_detail(request: Request, project_id: int, db: Session = Depend
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return templates.TemplateResponse("project_detail.html", {"request": request, "project": project})
+
+@app.post("/projects/{project_id}/run", response_class=RedirectResponse)
+async def run_project_now(project_id: int, db: Session = Depends(get_db)):
+    run_create = schema_run.RunCreate(project_id=project_id)
+    db_run = crud_run.create_run(db=db, run=run_create)
+    # Execute the script immediately in a background task
+    # For simplicity, we'll call it directly here, but for a real app, you'd use a background task queue.
+    execute_script(db, db_run.id)
+    return RedirectResponse(url=f"/runs/{db_run.id}", status_code=303)
 
 @app.get("/schedules/{schedule_id}", response_class=HTMLResponse)
 async def schedule_detail(request: Request, schedule_id: int, db: Session = Depends(get_db)):
