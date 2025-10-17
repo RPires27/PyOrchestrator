@@ -18,6 +18,9 @@
             <form action="/projects/{{ project.id }}/run" method="post" style="display:inline;">
                 <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-play-circle"></i> Run Project Now</button>
             </form>
+            <form action="/projects/{{ project.id }}/delete" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this project and all its associated schedules and runs?');">
+                <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i> Delete Project</button>
+            </form>
         </div>
     </div>
     <div class="card-body">
