@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from app.database.base import engine, Base, SessionLocal
 from app.routes import projects, schedules, runs
 from app.services.scheduler import SchedulerService
@@ -7,6 +9,8 @@ from app.crud import schedule as crud_schedule
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+templates = Jinja2Templates(directory="templates")
 
 @app.on_event("startup")
 def startup_event():
@@ -27,6 +31,6 @@ app.include_router(projects.router)
 app.include_router(schedules.router)
 app.include_router(runs.router)
 
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to the PyOrchestrator"}
+@app.get("/", response_class=HTMLResponse)
+async def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request, "message": "Welcome to the PyOrchestrator"})
