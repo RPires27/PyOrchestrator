@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, Form, Depends, BackgroundTasks, HTTPException # Import HTTPException
+from fastapi.staticfiles import StaticFiles # Import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -16,6 +17,8 @@ from app.services.executor import execute_script
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
 
