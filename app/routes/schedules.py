@@ -45,10 +45,10 @@ def update_schedule(request: Request, schedule_id: int, schedule: schema_schedul
     
     scheduler: SchedulerService = request.app.state.scheduler
     try:
-        scheduler.scheduler.remove_job(str(schedule_id))
+        scheduler.remove_job(db_schedule.id) # Use db_schedule.id
     except Exception as e:
         print(f"Error removing job: {e}")
-    scheduler.schedule_job(db_schedule.id, db_schedule.project_id, db_schedule.cron_schedule)
+    scheduler.schedule_job(db_schedule.id, db_schedule.project_id, db_schedule.cron_schedule) # Use db_schedule.project_id
     
     return db_schedule
 
