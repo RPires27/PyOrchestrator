@@ -4,9 +4,14 @@ from sqlalchemy.orm import Session
 from app.crud import run as crud_run
 from app.schemas import run as schema_run
 import httpx
+import os
+from dotenv import load_dotenv
 from app.core.logging_config import setup_logging # Import setup_logging
 
 logger = setup_logging()
+load_dotenv() # Load environment variables from .env file
+
+FASTAPI_BASE_URL = os.getenv("FASTAPI_BASE_URL", "http://localhost:8000")
 
 class SchedulerService:
     def __init__(self, db: Session):
@@ -36,7 +41,7 @@ class SchedulerService:
         logger.info(f"Scheduler triggering run for project {project_id}, schedule {schedule_id}.")
         try:
             with httpx.Client() as client:
-                response = client.post(f"http://localhost:8000/projects/{project_id}/run")
+                response = client.post(f"{FASTAPI_BASE_URL}/projects/{project_id}/run")
                 response.raise_for_status() # Raise an exception for bad status codes
             logger.info(f"Successfully triggered run for project {project_id}, schedule {schedule_id} via API. Response: {response.status_code}")
         except httpx.RequestError as e:
