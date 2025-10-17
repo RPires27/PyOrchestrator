@@ -3,7 +3,7 @@ from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy.orm import Session
 from app.crud import run as crud_run
 from app.schemas import run as schema_run
-from app.services.executor import execute_script
+import httpx
 
 class SchedulerService:
     def __init__(self, db: Session):
@@ -22,9 +22,10 @@ class SchedulerService:
         self.scheduler.remove_job(str(schedule_id))
 
     def run_job(self, project_id: int, schedule_id: int):
-        run = schema_run.RunCreate(project_id=project_id, schedule_id=schedule_id)
-        db_run = crud_run.create_run(self.db, run)
-        execute_script(self.db, db_run.id)
+        # Make an API call to our own app to trigger the run in the background
+        # This is a simple way to reuse the background task logic
+        with httpx.Client() as client:
+            client.post(f"http://localhost:8000/projects/{project_id}/run")
 
     def start(self):
         self.scheduler.start()

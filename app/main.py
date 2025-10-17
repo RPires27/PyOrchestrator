@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, Depends
+from fastapi import FastAPI, Request, Form, Depends, BackgroundTasks # Import BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -116,12 +116,10 @@ async def project_detail(request: Request, project_id: int, db: Session = Depend
     return templates.TemplateResponse("project_detail.html", {"request": request, "project": project})
 
 @app.post("/projects/{project_id}/run", response_class=RedirectResponse)
-async def run_project_now(project_id: int, db: Session = Depends(get_db)):
+async def run_project_now(project_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     run_create = schema_run.RunCreate(project_id=project_id)
     db_run = crud_run.create_run(db=db, run=run_create)
-    # Execute the script immediately in a background task
-    # For simplicity, we'll call it directly here, but for a real app, you'd use a background task queue.
-    execute_script(db, db_run.id)
+    background_tasks.add_task(execute_script, db, db_run.id)
     return RedirectResponse(url=f"/runs/{db_run.id}", status_code=303)
 
 @app.get("/schedules/{schedule_id}", response_class=HTMLResponse)
