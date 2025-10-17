@@ -14,3 +14,19 @@ def create_project(db: Session, project: ProjectCreate):
     db.commit()
     db.refresh(db_project)
     return db_project
+
+def update_project(db: Session, project_id: int, project: ProjectCreate):
+    db_project = db.query(Project).filter(Project.id == project_id).first()
+    if db_project:
+        for key, value in project.model_dump().items():
+            setattr(db_project, key, value)
+        db.commit()
+        db.refresh(db_project)
+    return db_project
+
+def delete_project(db: Session, project_id: int):
+    db_project = db.query(Project).filter(Project.id == project_id).first()
+    if db_project:
+        db.delete(db_project)
+        db.commit()
+    return db_project

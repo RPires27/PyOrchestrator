@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import relationship
 from app.database.base import Base
 
 class Project(Base):
@@ -12,3 +13,6 @@ class Project(Base):
     main_script = Column(String)
     arguments = Column(String, nullable=True)
     environment_type = Column(String)
+
+    schedules = relationship("Schedule", back_populates="project", cascade="all, delete-orphan")
+    runs = relationship("Run", back_populates="project", cascade="all, delete-orphan")

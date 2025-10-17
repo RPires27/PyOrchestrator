@@ -14,5 +14,5 @@ class Run(Base):
     status = Column(String, default="pending") # pending, running, completed, failed
     log_output = Column(String, nullable=True)
 
-    project = relationship("Project")
-    schedule = relationship("Schedule")
+    project = relationship("Project", back_populates="runs")
+    schedule = relationship("Schedule", back_populates="runs")

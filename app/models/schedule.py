@@ -10,4 +10,5 @@ class Schedule(Base):
     project_id = Column(Integer, ForeignKey("projects.id"))
     cron_schedule = Column(String)
     
-    project = relationship("Project")
+    project = relationship("Project", back_populates="schedules")
+    runs = relationship("Run", back_populates="schedule", cascade="all, delete-orphan")
