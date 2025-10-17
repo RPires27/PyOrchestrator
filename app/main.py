@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, Depends, BackgroundTasks # Import BackgroundTasks
+from fastapi import FastAPI, Request, Form, Depends, BackgroundTasks, HTTPException # Import HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -80,6 +80,55 @@ async def create_project_from_form(
         environment_type=environment_type
     )
     crud_project.create_project(db=db, project=project_create)
+    return RedirectResponse(url="/", status_code=303)
+
+@app.get("/projects/{project_id}/edit", response_class=HTMLResponse)
+async def edit_project_form(request: Request, project_id: int, db: Session = Depends(get_db)):
+    project = crud_project.get_project(db, project_id=project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return templates.TemplateResponse("edit_project.html", {"request": request, "project": project})
+
+@app.post("/projects/{project_id}/edit", response_class=HTMLResponse)
+async def update_project_from_form(
+    request: Request,
+    project_id: int,
+    name: str = Form(...),
+    source_type: str = Form(...),
+    source_url: str = Form(None),
+    source_path: str = Form(...),
+    main_script: str = Form(...),
+    arguments: str = Form(None),
+    environment_type: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    project_update = schema_project.ProjectCreate(
+        name=name,
+        source_type=source_type,
+        source_url=source_url if source_url else None,
+        source_path=source_path,
+        main_script=main_script,
+        arguments=arguments if arguments else None,
+        environment_type=environment_type
+    )
+    crud_project.update_project(db=db, project_id=project_id, project=project_update)
+    return RedirectResponse(url="/", status_code=303)
+
+@app.post("/projects/{project_id}/delete", response_class=RedirectResponse)
+async def delete_project_from_ui(request: Request, project_id: int, db: Session = Depends(get_db)):
+    schedules_to_delete = crud_schedule.get_schedules_by_project_id(db, project_id=project_id)
+    
+    db_project = crud_project.delete_project(db, project_id=project_id)
+    if db_project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    scheduler: SchedulerService = request.app.state.scheduler
+    for schedule in schedules_to_delete:
+        try:
+            scheduler.remove_job(schedule.id)
+        except Exception as e:
+            print(f"Error removing job {schedule.id} from scheduler: {e}")
+            
     return RedirectResponse(url="/", status_code=303)
 
 @app.get("/schedules/add", response_class=HTMLResponse)

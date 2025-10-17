@@ -10,6 +10,7 @@
         th { background-color: #f2f2f2; }
         .button-link { display: inline-block; padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px; }
         .button-link:hover { background-color: #0056b3; }
+        .action-link { margin-right: 10px; }
     </style>
 </head>
 <body>
@@ -42,7 +43,13 @@
                 <td>{{ project.source_url if project.source_url else project.source_path }}</td>
                 <td>{{ project.main_script }}</td>
                 <td>{{ project.environment_type }}</td>
-                <td><a href="/projects/{{ project.id }}">View</a></td>
+                <td>
+                    <a href="/projects/{{ project.id }}" class="action-link">View</a>
+                    <a href="/projects/{{ project.id }}/edit" class="action-link">Edit</a>
+                    <form action="/projects/{{ project.id }}/delete" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this project?');">
+                        <button type="submit" class="action-link">Delete</button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
