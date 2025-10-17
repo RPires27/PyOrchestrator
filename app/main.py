@@ -45,13 +45,9 @@ def shutdown_event():
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, db: Session = Depends(get_db)):
     projects_data = crud_project.get_projects(db)
-    schedules_data = crud_schedule.get_schedules(db)
-    runs_data = crud_run.get_runs(db, limit=10) # Get last 10 runs
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "projects": projects_data,
-        "schedules": schedules_data,
-        "runs": runs_data
+        "projects": projects_data
     })
 
 @app.get("/projects/add", response_class=HTMLResponse)
@@ -157,12 +153,68 @@ async def create_schedule_from_form(
 
     return RedirectResponse(url="/", status_code=303)
 
+@app.get("/schedules/{schedule_id}/edit", response_class=HTMLResponse)
+async def edit_schedule_form(request: Request, schedule_id: int, db: Session = Depends(get_db)):
+    schedule = crud_schedule.get_schedule(db, schedule_id=schedule_id)
+    if schedule is None:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    projects_data = crud_project.get_projects(db) # Need projects for the dropdown
+    return templates.TemplateResponse("edit_schedule.html", {"request": request, "schedule": schedule, "projects": projects_data})
+
+@app.post("/schedules/{schedule_id}/edit", response_class=HTMLResponse)
+async def update_schedule_from_form(
+    request: Request,
+    schedule_id: int,
+    name: str = Form(...),
+    project_id: int = Form(...),
+    cron_schedule: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    schedule_update = schema_schedule.ScheduleCreate(
+        name=name,
+        project_id=project_id,
+        cron_schedule=cron_schedule
+    )
+    db_schedule = crud_schedule.update_schedule(db, schedule_id=schedule_id, schedule=schedule_update)
+    if db_schedule is None:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    
+    scheduler: SchedulerService = request.app.state.scheduler
+    try:
+        scheduler.remove_job(db_schedule.id)
+    except Exception as e:
+        print(f"Error removing job: {e}")
+    scheduler.schedule_job(db_schedule.id, db_schedule.project_id, db_schedule.cron_schedule)
+
+    return RedirectResponse(url="/", status_code=303)
+
+@app.post("/schedules/{schedule_id}/delete", response_class=RedirectResponse)
+async def delete_schedule_from_ui(request: Request, schedule_id: int, db: Session = Depends(get_db)):
+    db_schedule = crud_schedule.delete_schedule(db, schedule_id=schedule_id)
+    if db_schedule is None:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    
+    scheduler: SchedulerService = request.app.state.scheduler
+    try:
+        scheduler.remove_job(db_schedule.id)
+    except Exception as e:
+        print(f"Error removing job: {e}")
+    
+    return RedirectResponse(url="/", status_code=303)
+
 @app.get("/projects/{project_id}", response_class=HTMLResponse)
 async def project_detail(request: Request, project_id: int, db: Session = Depends(get_db)):
     project = crud_project.get_project(db, project_id=project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
-    return templates.TemplateResponse("project_detail.html", {"request": request, "project": project})
+    schedules_data = crud_schedule.get_schedules_by_project_id(db, project_id=project_id)
+    runs_data = crud_run.get_runs_by_project_id(db, project_id=project_id, limit=10)
+    return templates.TemplateResponse("project_detail.html", {
+        "request": request,
+        "project": project,
+        "schedules": schedules_data,
+        "runs": runs_data
+    })
 
 @app.post("/projects/{project_id}/run", response_class=RedirectResponse)
 async def run_project_now(project_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):

@@ -28,9 +28,6 @@
                 <th>ID</th>
                 <th>Name</th>
                 <th>Source Type</th>
-                <th>Source URL/Path</th>
-                <th>Main Script</th>
-                <th>Environment</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -40,70 +37,9 @@
                 <td>{{ project.id }}</td>
                 <td>{{ project.name }}</td>
                 <td>{{ project.source_type }}</td>
-                <td>{{ project.source_url if project.source_url else project.source_path }}</td>
-                <td>{{ project.main_script }}</td>
-                <td>{{ project.environment_type }}</td>
                 <td>
-                    <a href="/projects/{{ project.id }}" class="action-link">View</a>
-                    <a href="/projects/{{ project.id }}/edit" class="action-link">Edit</a>
-                    <form action="/projects/{{ project.id }}/delete" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this project?');">
-                        <button type="submit" class="action-link">Delete</button>
-                    </form>
+                    <a href="/projects/{{ project.id }}" class="action-link">View Details</a>
                 </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <h2>Schedules</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Project ID</th>
-                <th>Cron Schedule</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for schedule in schedules %}
-            <tr>
-                <td>{{ schedule.id }}</td>
-                <td>{{ schedule.name }}</td>
-                <td>{{ schedule.project_id }}</td>
-                <td>{{ schedule.cron_schedule }}</td>
-                <td><a href="/schedules/{{ schedule.id }}">View</a></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <h2>Recent Runs</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Project ID</th>
-                <th>Schedule ID</th>
-                <th>Status</th>
-                <th>Start Time</th>
-                <th>End Time</th>
-                <th>Log Output</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for run in runs %}
-            <tr>
-                <td>{{ run.id }}</td>
-                <td>{{ run.project_id }}</td>
-                <td>{{ run.schedule_id if run.schedule_id else 'N/A' }}</td>
-                <td>{{ run.status }}</td>
-                <td>{{ run.start_time }}</td>
-                <td>{{ run.end_time if run.end_time else 'N/A' }}</td>
-                <td><pre>{{ run.log_output if run.log_output else 'No log output' }}</pre></td>
-                <td><a href="/runs/{{ run.id }}">View</a></td>
             </tr>
             {% endfor %}
         </tbody>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Schedule</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        form div { margin-bottom: 10px; }
+        label { display: inline-block; width: 120px; }
+        input[type="text"], select { width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .back-link { display: block; margin-top: 20px; color: #007bff; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <h1>Edit Schedule (ID: {{ schedule.id }})</h1>
+    <form action="/schedules/{{ schedule.id }}/edit" method="post">
+        <div>
+            <label for="name">Schedule Name:</label>
+            <input type="text" id="name" name="name" value="{{ schedule.name }}" required>
+        </div>
+        <div>
+            <label for="project_id">Project:</label>
+            <select id="project_id" name="project_id" required>
+                {% for project in projects %}
+                <option value="{{ project.id }}" {% if project.id == schedule.project_id %}selected{% endif %}>{{ project.name }} (ID: {{ project.id }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="cron_schedule">Cron Schedule:</label>
+            <input type="text" id="cron_schedule" name="cron_schedule" value="{{ schedule.cron_schedule }}" placeholder="e.g., * * * * *" required>
+        </div>
+        <button type="submit">Update Schedule</button>
+    </form>
+
+    <a href="/" class="back-link">Back to Dashboard</a>
+</body>
+</html>
