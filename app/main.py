@@ -202,6 +202,17 @@ async def delete_schedule_from_ui(request: Request, schedule_id: int, db: Sessio
     
     return RedirectResponse(url="/", status_code=303)
 
+@app.post("/schedules/{schedule_id}/run", response_class=RedirectResponse)
+async def run_schedule_now(schedule_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    schedule = crud_schedule.get_schedule(db, schedule_id=schedule_id)
+    if schedule is None:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    
+    run_create = schema_run.RunCreate(project_id=schedule.project_id, schedule_id=schedule.id)
+    db_run = crud_run.create_run(db=db, run=run_create)
+    background_tasks.add_task(execute_script, db, db_run.id)
+    return RedirectResponse(url=f"/runs/{db_run.id}", status_code=303)
+
 @app.get("/projects/{project_id}", response_class=HTMLResponse)
 async def project_detail(request: Request, project_id: int, db: Session = Depends(get_db)):
     project = crud_project.get_project(db, project_id=project_id)
