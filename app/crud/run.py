@@ -9,8 +9,12 @@ def get_run(db: Session, run_id: int):
 def get_runs(db: Session, skip: int = 0, limit: int = 100):
     return db.query(Run).order_by(Run.start_time.desc()).offset(skip).limit(limit).all()
 
-def get_runs_by_project_id(db: Session, project_id: int, skip: int = 0, limit: int = 100):
-    return db.query(Run).filter(Run.project_id == project_id).order_by(Run.start_time.desc()).offset(skip).limit(limit).all()
+def get_runs_by_project_id(db: Session, project_id: int, page: int = 1, page_size: int = 10):
+    offset = (page - 1) * page_size
+    return db.query(Run).filter(Run.project_id == project_id).order_by(Run.start_time.desc()).offset(offset).limit(page_size).all()
+
+def get_runs_count_by_project_id(db: Session, project_id: int):
+    return db.query(Run).filter(Run.project_id == project_id).count()
 
 def create_run(db: Session, run: RunCreate):
     db_run = Run(**run.model_dump())

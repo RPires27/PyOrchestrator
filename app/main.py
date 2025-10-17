@@ -13,6 +13,7 @@ from app.schemas import project as schema_project
 from app.schemas import schedule as schema_schedule
 from app.schemas import run as schema_run
 from app.services.executor import execute_script
+import math # Import math for ceil
 
 Base.metadata.create_all(bind=engine)
 
@@ -217,17 +218,31 @@ async def run_schedule_now(schedule_id: int, background_tasks: BackgroundTasks, 
     return RedirectResponse(url=f"/runs/{db_run.id}", status_code=303)
 
 @app.get("/projects/{project_id}", response_class=HTMLResponse)
-async def project_detail(request: Request, project_id: int, db: Session = Depends(get_db)):
+async def project_detail(
+    request: Request,
+    project_id: int,
+    db: Session = Depends(get_db),
+    page: int = 1,
+    page_size: int = 10 # Default page size
+):
     project = crud_project.get_project(db, project_id=project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
+    
     schedules_data = crud_schedule.get_schedules_by_project_id(db, project_id=project_id)
-    runs_data = crud_run.get_runs_by_project_id(db, project_id=project_id, limit=10)
+    
+    total_runs = crud_run.get_runs_count_by_project_id(db, project_id=project_id)
+    runs_data = crud_run.get_runs_by_project_id(db, project_id=project_id, page=page, page_size=page_size)
+    total_pages = math.ceil(total_runs / page_size)
+
     return templates.TemplateResponse("project_detail.html", {
         "request": request,
         "project": project,
         "schedules": schedules_data,
-        "runs": runs_data
+        "runs": runs_data,
+        "current_page": page,
+        "total_pages": total_pages,
+        "page_size": page_size
     })
 
 @app.post("/projects/{project_id}/run", response_class=RedirectResponse)
