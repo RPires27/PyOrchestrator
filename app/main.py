@@ -14,6 +14,10 @@ from app.schemas import schedule as schema_schedule
 from app.schemas import run as schema_run
 from app.services.executor import execute_script
 import math # Import math for ceil
+from app.core.logging_config import setup_logging # Import setup_logging
+
+# Setup logging as early as possible
+logger = setup_logging()
 
 Base.metadata.create_all(bind=engine)
 
@@ -37,18 +41,21 @@ def startup_event():
     scheduler_service = SchedulerService(db)
     schedules = crud_schedule.get_schedules(db)
     for schedule in schedules:
-        print(f"Scheduling job {schedule.id} with cron: {schedule.cron_schedule}")
+        logger.info(f"Scheduling job {schedule.id} with cron: {schedule.cron_schedule}")
         scheduler_service.schedule_job(schedule.id, schedule.project_id, schedule.cron_schedule)
     scheduler_service.start()
     app.state.scheduler = scheduler_service
+    logger.info("Application startup complete. Scheduler started.")
 
 @app.on_event("shutdown")
 def shutdown_event():
     app.state.scheduler.shutdown()
+    logger.info("Application shutdown complete. Scheduler stopped.")
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, db: Session = Depends(get_db)):
     projects_data = crud_project.get_projects(db)
+    logger.info("Dashboard accessed.")
     return templates.TemplateResponse("index.html", {
         "request": request,
         "projects": projects_data
@@ -56,6 +63,7 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/projects/add", response_class=HTMLResponse)
 async def add_project_form(request: Request):
+    logger.info("Add project form requested.")
     return templates.TemplateResponse("add_project.html", {"request": request})
 
 @app.post("/projects/add", response_class=HTMLResponse)
@@ -80,13 +88,16 @@ async def create_project_from_form(
         environment_type=environment_type
     )
     crud_project.create_project(db=db, project=project_create)
+    logger.info(f"Project '{name}' created.")
     return RedirectResponse(url="/", status_code=303)
 
 @app.get("/projects/{project_id}/edit", response_class=HTMLResponse)
 async def edit_project_form(request: Request, project_id: int, db: Session = Depends(get_db)):
     project = crud_project.get_project(db, project_id=project_id)
     if project is None:
+        logger.warning(f"Attempted to edit non-existent project with ID: {project_id}")
         raise HTTPException(status_code=404, detail="Project not found")
+    logger.info(f"Edit project form requested for project ID: {project_id}")
     return templates.TemplateResponse("edit_project.html", {"request": request, "project": project})
 
 @app.post("/projects/{project_id}/edit", response_class=HTMLResponse)
@@ -112,6 +123,7 @@ async def update_project_from_form(
         environment_type=environment_type
     )
     crud_project.update_project(db=db, project_id=project_id, project=project_update)
+    logger.info(f"Project ID {project_id} updated to '{name}'.")
     return RedirectResponse(url="/", status_code=303)
 
 @app.post("/projects/{project_id}/delete", response_class=RedirectResponse)
@@ -120,20 +132,24 @@ async def delete_project_from_ui(request: Request, project_id: int, db: Session 
     
     db_project = crud_project.delete_project(db, project_id=project_id)
     if db_project is None:
+        logger.warning(f"Attempted to delete non-existent project with ID: {project_id}")
         raise HTTPException(status_code=404, detail="Project not found")
     
     scheduler: SchedulerService = request.app.state.scheduler
     for schedule in schedules_to_delete:
         try:
             scheduler.remove_job(schedule.id)
+            logger.info(f"Removed schedule ID {schedule.id} from scheduler due to project deletion.")
         except Exception as e:
-            print(f"Error removing job {schedule.id} from scheduler: {e}")
+            logger.error(f"Error removing job {schedule.id} from scheduler during project deletion: {e}")
             
+    logger.info(f"Project ID {project_id} deleted.")
     return RedirectResponse(url="/", status_code=303)
 
 @app.get("/schedules/add", response_class=HTMLResponse)
 async def add_schedule_form(request: Request, db: Session = Depends(get_db)):
     projects_data = crud_project.get_projects(db)
+    logger.info("Add schedule form requested.")
     return templates.TemplateResponse("add_schedule.html", {"request": request, "projects": projects_data})
 
 @app.post("/schedules/add", response_class=HTMLResponse)
@@ -154,6 +170,7 @@ async def create_schedule_from_form(
     # Add to scheduler immediately
     scheduler: SchedulerService = request.app.state.scheduler
     scheduler.schedule_job(db_schedule.id, db_schedule.project_id, db_schedule.cron_schedule)
+    logger.info(f"Schedule '{name}' created and added to scheduler.")
 
     return RedirectResponse(url="/", status_code=303)
 
@@ -161,8 +178,10 @@ async def create_schedule_from_form(
 async def edit_schedule_form(request: Request, schedule_id: int, db: Session = Depends(get_db)):
     schedule = crud_schedule.get_schedule(db, schedule_id=schedule_id)
     if schedule is None:
+        logger.warning(f"Attempted to edit non-existent schedule with ID: {schedule_id}")
         raise HTTPException(status_code=404, detail="Schedule not found")
     projects_data = crud_project.get_projects(db) # Need projects for the dropdown
+    logger.info(f"Edit schedule form requested for schedule ID: {schedule_id}")
     return templates.TemplateResponse("edit_schedule.html", {"request": request, "schedule": schedule, "projects": projects_data})
 
 @app.post("/schedules/{schedule_id}/edit", response_class=HTMLResponse)
@@ -181,14 +200,17 @@ async def update_schedule_from_form(
     )
     db_schedule = crud_schedule.update_schedule(db, schedule_id=schedule_id, schedule=schedule_update)
     if db_schedule is None:
+        logger.warning(f"Attempted to update non-existent schedule with ID: {schedule_id}")
         raise HTTPException(status_code=404, detail="Schedule not found")
     
     scheduler: SchedulerService = request.app.state.scheduler
     try:
         scheduler.remove_job(db_schedule.id)
+        logger.info(f"Removed old job for schedule ID {db_schedule.id} from scheduler.")
     except Exception as e:
-        print(f"Error removing job: {e}")
+        logger.error(f"Error removing old job for schedule ID {db_schedule.id} from scheduler: {e}")
     scheduler.schedule_job(db_schedule.id, db_schedule.project_id, db_schedule.cron_schedule)
+    logger.info(f"Schedule ID {schedule_id} updated and re-added to scheduler.")
 
     return RedirectResponse(url="/", status_code=303)
 
@@ -196,25 +218,30 @@ async def update_schedule_from_form(
 async def delete_schedule_from_ui(request: Request, schedule_id: int, db: Session = Depends(get_db)):
     db_schedule = crud_schedule.delete_schedule(db, schedule_id=schedule_id)
     if db_schedule is None:
+        logger.warning(f"Attempted to delete non-existent schedule with ID: {schedule_id}")
         raise HTTPException(status_code=404, detail="Schedule not found")
     
     scheduler: SchedulerService = request.app.state.scheduler
     try:
         scheduler.remove_job(db_schedule.id)
+        logger.info(f"Removed schedule ID {db_schedule.id} from scheduler.")
     except Exception as e:
-        print(f"Error removing job: {e}")
+        logger.error(f"Error removing job {db_schedule.id} from scheduler: {e}")
     
+    logger.info(f"Schedule ID {schedule_id} deleted.")
     return RedirectResponse(url="/", status_code=303)
 
 @app.post("/schedules/{schedule_id}/run", response_class=RedirectResponse)
 async def run_schedule_now(schedule_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     schedule = crud_schedule.get_schedule(db, schedule_id=schedule_id)
     if schedule is None:
+        logger.warning(f"Attempted to run non-existent schedule with ID: {schedule_id}")
         raise HTTPException(status_code=404, detail="Schedule not found")
     
     run_create = schema_run.RunCreate(project_id=schedule.project_id, schedule_id=schedule.id)
     db_run = crud_run.create_run(db=db, run=run_create)
     background_tasks.add_task(execute_script, db, db_run.id)
+    logger.info(f"Manually triggered run for schedule ID {schedule_id}. Run ID: {db_run.id}")
     return RedirectResponse(url=f"/runs/{db_run.id}", status_code=303)
 
 @app.get("/projects/{project_id}", response_class=HTMLResponse)
@@ -227,6 +254,7 @@ async def project_detail(
 ):
     project = crud_project.get_project(db, project_id=project_id)
     if project is None:
+        logger.warning(f"Attempted to view details of non-existent project with ID: {project_id}")
         raise HTTPException(status_code=404, detail="Project not found")
     
     schedules_data = crud_schedule.get_schedules_by_project_id(db, project_id=project_id)
@@ -235,6 +263,7 @@ async def project_detail(
     runs_data = crud_run.get_runs_by_project_id(db, project_id=project_id, page=page, page_size=page_size)
     total_pages = math.ceil(total_runs / page_size)
 
+    logger.info(f"Project detail page accessed for project ID: {project_id}. Page: {page}/{total_pages}")
     return templates.TemplateResponse("project_detail.html", {
         "request": request,
         "project": project,
@@ -250,20 +279,25 @@ async def run_project_now(project_id: int, background_tasks: BackgroundTasks, db
     run_create = schema_run.RunCreate(project_id=project_id)
     db_run = crud_run.create_run(db=db, run=run_create)
     background_tasks.add_task(execute_script, db, db_run.id)
+    logger.info(f"Manually triggered run for project ID {project_id}. Run ID: {db_run.id}")
     return RedirectResponse(url=f"/runs/{db_run.id}", status_code=303)
 
 @app.get("/schedules/{schedule_id}", response_class=HTMLResponse)
 async def schedule_detail(request: Request, schedule_id: int, db: Session = Depends(get_db)):
     schedule = crud_schedule.get_schedule(db, schedule_id=schedule_id)
     if schedule is None:
+        logger.warning(f"Attempted to view details of non-existent schedule with ID: {schedule_id}")
         raise HTTPException(status_code=404, detail="Schedule not found")
+    logger.info(f"Schedule detail page accessed for schedule ID: {schedule_id}")
     return templates.TemplateResponse("schedule_detail.html", {"request": request, "schedule": schedule})
 
 @app.get("/runs/{run_id}", response_class=HTMLResponse)
 async def run_detail(request: Request, run_id: int, db: Session = Depends(get_db)):
     run = crud_run.get_run(db, run_id=run_id)
     if run is None:
+        logger.warning(f"Attempted to view details of non-existent run with ID: {run_id}")
         raise HTTPException(status_code=404, detail="Run not found")
+    logger.info(f"Run detail page accessed for run ID: {run_id}")
     return templates.TemplateResponse("run_detail.html", {"request": request, "run": run})
 
 # Include the routers after the add routes
