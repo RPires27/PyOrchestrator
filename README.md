@@ -12,7 +12,7 @@ A lightweight Python Orchestrator Web Tool designed to streamline and automate t
     - **Advanced Mode:** Use standard cron expressions for complex scheduling needs.
 - **Timezone Support:** Each schedule can have its own timezone to ensure jobs run at the correct local time.
 - **Manual Triggers:** Manually trigger project or schedule runs directly from the web UI.
-- **Environment Handling:** Supports both `uv` and `venv` for isolated and efficient dependency management. `uv` automatically handles `pyproject.toml` and `requirements.txt`.
+- **Cross-Platform Environment Handling:** Supports both `uv` and `venv` for isolated and efficient dependency management on Linux and Windows. `uv` automatically handles `pyproject.toml` and `requirements.txt`.
 - **Dependency Management:** Manually re-sync project dependencies from the UI.
 - **Execution Logging:** Stores detailed logs and results for each script run.
 - **GitHub Integration:** Automatically clones or pulls updates for projects hosted on GitHub.
@@ -48,6 +48,7 @@ A lightweight Python Orchestrator Web Tool designed to streamline and automate t
 
 - Python 3.11+ (recommended)
 - `uv` (install with `pip install uv`) or `pip`
+- Git (for GitHub projects)
 
 ### Local Development Setup
 
