@@ -100,7 +100,7 @@ PyOrchestrator/
 │   ├── schemas/              # Pydantic schemas for data validation
 │   ├── services/             # Business logic (scheduler, executor, notifications)
 │   └── main.py               # Main FastAPI application entry point
-├── static/                   # Static assets (custom CSS, JS, images)
+├── static/                   # Static assets (custom CSS, JS, images). Contains a `.gitkeep` file to ensure it's tracked by Git.
 ├── templates/                # Jinja2 HTML templates
 ├── .env.example              # Example environment variables file
 ├── .gitignore
