@@ -12,7 +12,7 @@ from app.crud import run as crud_run
 from app.schemas import project as schema_project
 from app.schemas import schedule as schema_schedule
 from app.schemas import run as schema_run
-from app.services.executor import execute_script
+from app.services.executor import execute_script, sync_project_dependencies # Import sync_project_dependencies
 import math # Import math for ceil
 from app.core.logging_config import setup_logging # Import setup_logging
 from app.core.utils import get_timezones # Import get_timezones
@@ -147,6 +147,20 @@ async def delete_project_from_ui(request: Request, project_id: int, db: Session 
             
     logger.info(f"Project ID {project_id} deleted.")
     return RedirectResponse(url="/", status_code=303)
+
+@app.post("/projects/{project_id}/sync-dependencies", response_class=RedirectResponse)
+async def sync_dependencies_for_project(
+    project_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    project = crud_project.get_project(db, project_id=project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    background_tasks.add_task(sync_project_dependencies, project.source_path, project.environment_type)
+    logger.info(f"Triggered dependency sync for project ID: {project_id}")
+    return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
 @app.get("/schedules/add", response_class=HTMLResponse)
 async def add_schedule_form(request: Request, db: Session = Depends(get_db)):

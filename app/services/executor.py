@@ -8,6 +8,23 @@ from app.core.logging_config import setup_logging # Import setup_logging
 
 logger = setup_logging()
 
+def sync_project_dependencies(project_path: str, environment_type: str):
+    logger.info(f"Syncing dependencies for project at {project_path} using {environment_type}")
+    if environment_type == "uv":
+        logger.info(f"Running uv sync in {project_path}")
+        subprocess.run(["uv", "sync"], cwd=project_path, check=True)
+    elif environment_type == "venv":
+        venv_path = os.path.join(project_path, ".venv")
+        if not os.path.isdir(venv_path):
+            logger.info(f"Creating venv at {venv_path}")
+            subprocess.run(["python", "-m", "venv", venv_path], cwd=project_path, check=True)
+        
+        pip_executable = os.path.join(venv_path, "bin", "pip")
+        logger.info(f"Installing requirements in venv at {venv_path}")
+        subprocess.run([pip_executable, "install", "-r", "requirements.txt"], cwd=project_path, check=True)
+    else:
+        raise ValueError(f"Unsupported environment type: {environment_type}")
+
 def execute_script(db: Session, run_id: int):
     db_run = crud_run.get_run(db, run_id)
     if not db_run:
@@ -72,24 +89,16 @@ def execute_script(db: Session, run_id: int):
             crud_run.update_run_status(db, run_id, "failed", error_msg)
             return
 
-        # Environment setup and script execution (rest of the existing code)
+        sync_project_dependencies(project_path, project.environment_type)
+
         if project.environment_type == "uv":
-            logger.info(f"Running uv sync in {project_path}")
-            subprocess.run(["uv", "sync"], cwd=project_path, check=True)
             command = ["uv", "run", project.main_script]
         elif project.environment_type == "venv":
             venv_path = os.path.join(project_path, ".venv")
-            if not os.path.isdir(venv_path):
-                logger.info(f"Creating venv at {venv_path}")
-                subprocess.run(["python", "-m", "venv", venv_path], cwd=project_path, check=True)
-            
-            pip_executable = os.path.join(venv_path, "bin", "pip")
             python_executable = os.path.join(venv_path, "bin", "python")
-
-            logger.info(f"Installing requirements in venv at {venv_path}")
-            subprocess.run([pip_executable, "install", "-r", "requirements.txt"], cwd=project_path, check=True)
             command = [python_executable, project.main_script]
         else:
+            # This case is already handled in sync_project_dependencies, but as a safeguard:
             error_msg = f"Unsupported environment type: {project.environment_type}"
             logger.error(error_msg)
             crud_run.update_run_status(db, run_id, "failed", error_msg)
