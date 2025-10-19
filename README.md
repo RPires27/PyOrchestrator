@@ -7,9 +7,13 @@ A lightweight Python Orchestrator Web Tool designed to streamline and automate t
 ### Core Functionality
 
 - **Project Management:** Add, manage, edit, and delete automation projects with details like name, source type (GitHub/Local), script path, arguments, and environment type (uv/venv).
-- **Script Scheduling:** Schedule scripts to run at specified intervals using cron expressions.
+- **Flexible Scheduling:**
+    - **Simple Mode:** Schedule jobs by selecting days of the week and a specific time, no cron knowledge required.
+    - **Advanced Mode:** Use standard cron expressions for complex scheduling needs.
+- **Timezone Support:** Each schedule can have its own timezone to ensure jobs run at the correct local time.
 - **Manual Triggers:** Manually trigger project or schedule runs directly from the web UI.
-- **Environment Handling:** Supports both `uv` and `venv` for isolated and efficient dependency management.
+- **Environment Handling:** Supports both `uv` and `venv` for isolated and efficient dependency management. `uv` automatically handles `pyproject.toml` and `requirements.txt`.
+- **Dependency Management:** Manually re-sync project dependencies from the UI.
 - **Execution Logging:** Stores detailed logs and results for each script run.
 - **GitHub Integration:** Automatically clones or pulls updates for projects hosted on GitHub.
 
@@ -35,6 +39,7 @@ A lightweight Python Orchestrator Web Tool designed to streamline and automate t
 - **Git Operations:** GitPython
 - **Web Server:** Uvicorn
 - **Frontend:** Jinja2 Templates, Bootstrap 5, Bootstrap Icons
+- **Timezones:** pytz
 - **Environment Variables:** python-dotenv
 
 ## 📦 Setup and Installation
@@ -79,7 +84,7 @@ A lightweight Python Orchestrator Web Tool designed to streamline and automate t
 2.  **Manage Projects:**
     - Click "Add New Project" to create a new automation project.
     - From the dashboard, click "View Details" on a project to see its schedules and runs.
-    - On the project detail page, you can "Edit Project", "Run Project Now", or "Delete Project".
+    - On the project detail page, you can "Edit Project", "Run Project Now", "Re-sync Dependencies", or "Delete Project".
 3.  **Manage Schedules:**
     - On a project detail page, click "Add Schedule" to create a new schedule for that project.
     - For existing schedules, you can "Edit", "Delete", or "Run Now" (manually trigger the schedule).
@@ -92,13 +97,13 @@ A lightweight Python Orchestrator Web Tool designed to streamline and automate t
 ```
 PyOrchestrator/
 ├── app/
-│   ├── core/                 # Core utilities (e.g., logging configuration)
+│   ├── core/                 # Core utilities (logging, timezones)
 │   ├── crud/                 # CRUD operations for database models
 │   ├── database/             # Database setup and session management
 │   ├── models/               # SQLAlchemy ORM models
 │   ├── routes/               # FastAPI API routes
 │   ├── schemas/              # Pydantic schemas for data validation
-│   ├── services/             # Business logic (scheduler, executor, notifications)
+│   ├── services/             # Business logic (scheduler, executor)
 │   └── main.py               # Main FastAPI application entry point
 ├── static/                   # Static assets (custom CSS, JS, images). Contains a `.gitkeep` file to ensure it's tracked by Git.
 ├── templates/                # Jinja2 HTML templates
@@ -112,11 +117,10 @@ PyOrchestrator/
 
 ## 💡 Future Enhancements
 
-- **Advanced Environment Management:** Support for `pyproject.toml`, UI for managing virtual environments.
-- **Timezone Support:** Allow per-schedule timezone configuration.
+- **User Authentication:** Secure access with user accounts and roles (currently postponed).
 - **Notifications:** Implement email/other notifications for failed runs (currently postponed).
 - **UI Improvements:** Filtering and search capabilities for tables.
-- **User Authentication:** Secure access with user accounts and roles.
+- **Advanced Environment Management:** UI for viewing installed packages or recreating virtual environments.
 
 ## 🤝 Contributing
 
