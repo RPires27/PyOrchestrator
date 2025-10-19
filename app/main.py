@@ -263,7 +263,6 @@ async def delete_schedule_from_ui(request: Request, schedule_id: int, db: Sessio
     except Exception as e:
         logger.error(f"Error removing job {db_schedule.id} from scheduler: {e}")
     
-    logger.info(f"Schedule ID {schedule_id} deleted.")
     return RedirectResponse(url="/", status_code=303)
 
 @app.post("/schedules/{schedule_id}/run", response_class=RedirectResponse)
@@ -311,10 +310,23 @@ async def project_detail(
 
 @app.post("/projects/{project_id}/run", response_class=RedirectResponse)
 async def run_project_now(project_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    run_create = schema_run.RunCreate(project_id=project_id)
+    run_create = schema_run.RunCreate(project_id=project_id, schedule_id=None) # Explicitly set schedule_id to None
     db_run = crud_run.create_run(db=db, run=run_create)
     background_tasks.add_task(execute_script, db, db_run.id)
     logger.info(f"Manually triggered run for project ID {project_id}. Run ID: {db_run.id}")
+    return RedirectResponse(url=f"/runs/{db_run.id}", status_code=303)
+
+@app.post("/projects/{project_id}/run-scheduled/{schedule_id}", response_class=RedirectResponse)
+async def run_scheduled_job(
+    project_id: int,
+    schedule_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    run_create = schema_run.RunCreate(project_id=project_id, schedule_id=schedule_id)
+    db_run = crud_run.create_run(db=db, run=run_create)
+    background_tasks.add_task(execute_script, db, db_run.id)
+    logger.info(f"Scheduled job triggered for project ID {project_id}, schedule ID {schedule_id}. Run ID: {db_run.id}")
     return RedirectResponse(url=f"/runs/{db_run.id}", status_code=303)
 
 @app.get("/schedules/{schedule_id}", response_class=HTMLResponse)

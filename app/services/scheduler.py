@@ -41,7 +41,8 @@ class SchedulerService:
         logger.info(f"Scheduler triggering run for project {project_id}, schedule {schedule_id}.")
         try:
             with httpx.Client() as client:
-                response = client.post(f"{FASTAPI_BASE_URL}/projects/{project_id}/run")
+                # Call the new endpoint for scheduled runs
+                response = client.post(f"{FASTAPI_BASE_URL}/projects/{project_id}/run-scheduled/{schedule_id}")
                 response.raise_for_status() # Raise an exception for bad status codes
             logger.info(f"Successfully triggered run for project {project_id}, schedule {schedule_id} via API. Response: {response.status_code}")
         except httpx.RequestError as e:
