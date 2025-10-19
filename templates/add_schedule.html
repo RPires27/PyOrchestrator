@@ -25,6 +25,15 @@
                 <input type="text" class="form-control" id="cron_schedule" name="cron_schedule" placeholder="e.g., * * * * *" required>
                 <div class="form-text">Use standard cron format. For example, `0 9 * * 1-5` runs at 9 AM on weekdays.</div>
             </div>
+            <div class="mb-3">
+                <label for="timezone" class="form-label">Timezone</label>
+                <select class="form-select" id="timezone" name="timezone" required>
+                    {% for tz in timezones %}
+                    <option value="{{ tz }}" {% if tz == 'UTC' %}selected{% endif %}>{{ tz }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">Select the timezone for this schedule.</div>
+            </div>
             <button type="submit" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Add Schedule</button>
             <a href="/" class="btn btn-secondary">Cancel</a>
         </form>

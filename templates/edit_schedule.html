@@ -24,6 +24,15 @@
                 <label for="cron_schedule" class="form-label">Cron Schedule</label>
                 <input type="text" class="form-control" id="cron_schedule" name="cron_schedule" value="{{ schedule.cron_schedule }}" placeholder="e.g., * * * * *" required>
             </div>
+            <div class="mb-3">
+                <label for="timezone" class="form-label">Timezone</label>
+                <select class="form-select" id="timezone" name="timezone" required>
+                    {% for tz in timezones %}
+                    <option value="{{ tz }}" {% if tz == schedule.timezone %}selected{% endif %}>{{ tz }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">Select the timezone for this schedule.</div>
+            </div>
             <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Update Schedule</button>
             <a href="/projects/{{ schedule.project_id }}" class="btn btn-secondary">Cancel</a>
         </form>

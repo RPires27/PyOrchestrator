@@ -15,6 +15,7 @@ from app.schemas import run as schema_run
 from app.services.executor import execute_script
 import math # Import math for ceil
 from app.core.logging_config import setup_logging # Import setup_logging
+from app.core.utils import get_timezones # Import get_timezones
 
 # Setup logging as early as possible
 logger = setup_logging()
@@ -41,8 +42,8 @@ def startup_event():
     scheduler_service = SchedulerService(db)
     schedules = crud_schedule.get_schedules(db)
     for schedule in schedules:
-        logger.info(f"Scheduling job {schedule.id} with cron: {schedule.cron_schedule}")
-        scheduler_service.schedule_job(schedule.id, schedule.project_id, schedule.cron_schedule)
+        logger.info(f"Scheduling job {schedule.id} with cron: {schedule.cron_schedule} in timezone {schedule.timezone}")
+        scheduler_service.schedule_job(schedule.id, schedule.project_id, schedule.cron_schedule, schedule.timezone)
     scheduler_service.start()
     app.state.scheduler = scheduler_service
     logger.info("Application startup complete. Scheduler started.")
@@ -149,8 +150,9 @@ async def delete_project_from_ui(request: Request, project_id: int, db: Session 
 @app.get("/schedules/add", response_class=HTMLResponse)
 async def add_schedule_form(request: Request, db: Session = Depends(get_db)):
     projects_data = crud_project.get_projects(db)
+    timezones = get_timezones()
     logger.info("Add schedule form requested.")
-    return templates.TemplateResponse("add_schedule.html", {"request": request, "projects": projects_data})
+    return templates.TemplateResponse("add_schedule.html", {"request": request, "projects": projects_data, "timezones": timezones})
 
 @app.post("/schedules/add", response_class=HTMLResponse)
 async def create_schedule_from_form(
@@ -158,18 +160,20 @@ async def create_schedule_from_form(
     name: str = Form(...),
     project_id: int = Form(...),
     cron_schedule: str = Form(...),
+    timezone: str = Form("UTC"),
     db: Session = Depends(get_db)
 ):
     schedule_create = schema_schedule.ScheduleCreate(
         name=name,
         project_id=project_id,
-        cron_schedule=cron_schedule
+        cron_schedule=cron_schedule,
+        timezone=timezone
     )
     db_schedule = crud_schedule.create_schedule(db=db, schedule=schedule_create)
     
     # Add to scheduler immediately
     scheduler: SchedulerService = request.app.state.scheduler
-    scheduler.schedule_job(db_schedule.id, db_schedule.project_id, db_schedule.cron_schedule)
+    scheduler.schedule_job(db_schedule.id, db_schedule.project_id, db_schedule.cron_schedule, db_schedule.timezone)
     logger.info(f"Schedule '{name}' created and added to scheduler.")
 
     return RedirectResponse(url="/", status_code=303)
@@ -181,8 +185,9 @@ async def edit_schedule_form(request: Request, schedule_id: int, db: Session = D
         logger.warning(f"Attempted to edit non-existent schedule with ID: {schedule_id}")
         raise HTTPException(status_code=404, detail="Schedule not found")
     projects_data = crud_project.get_projects(db) # Need projects for the dropdown
+    timezones = get_timezones()
     logger.info(f"Edit schedule form requested for schedule ID: {schedule_id}")
-    return templates.TemplateResponse("edit_schedule.html", {"request": request, "schedule": schedule, "projects": projects_data})
+    return templates.TemplateResponse("edit_schedule.html", {"request": request, "schedule": schedule, "projects": projects_data, "timezones": timezones})
 
 @app.post("/schedules/{schedule_id}/edit", response_class=HTMLResponse)
 async def update_schedule_from_form(
@@ -191,12 +196,14 @@ async def update_schedule_from_form(
     name: str = Form(...),
     project_id: int = Form(...),
     cron_schedule: str = Form(...),
+    timezone: str = Form("UTC"),
     db: Session = Depends(get_db)
 ):
     schedule_update = schema_schedule.ScheduleCreate(
         name=name,
         project_id=project_id,
-        cron_schedule=cron_schedule
+        cron_schedule=cron_schedule,
+        timezone=timezone
     )
     db_schedule = crud_schedule.update_schedule(db, schedule_id=schedule_id, schedule=schedule_update)
     if db_schedule is None:
@@ -209,7 +216,7 @@ async def update_schedule_from_form(
         logger.info(f"Removed old job for schedule ID {db_schedule.id} from scheduler.")
     except Exception as e:
         logger.error(f"Error removing old job for schedule ID {db_schedule.id} from scheduler: {e}")
-    scheduler.schedule_job(db_schedule.id, db_schedule.project_id, db_schedule.cron_schedule)
+    scheduler.schedule_job(db_schedule.id, db_schedule.project_id, db_schedule.cron_schedule, db_schedule.timezone)
     logger.info(f"Schedule ID {schedule_id} updated and re-added to scheduler.")
 
     return RedirectResponse(url="/", status_code=303)

@@ -18,17 +18,17 @@ class SchedulerService:
         self.scheduler = BackgroundScheduler()
         self.db = db
 
-    def schedule_job(self, schedule_id: int, project_id: int, cron_schedule: str):
+    def schedule_job(self, schedule_id: int, project_id: int, cron_schedule: str, timezone: str = "UTC"):
         try:
             self.scheduler.add_job(
                 self.run_job,
-                CronTrigger.from_crontab(cron_schedule),
+                CronTrigger.from_crontab(cron_schedule, timezone=timezone),
                 id=str(schedule_id),
                 args=[project_id, schedule_id],
             )
-            logger.info(f"Scheduled job ID {schedule_id} for project {project_id} with cron: {cron_schedule}")
+            logger.info(f"Scheduled job ID {schedule_id} for project {project_id} with cron: {cron_schedule} in timezone {timezone}")
         except Exception as e:
-            logger.error(f"Error scheduling job ID {schedule_id} for project {project_id} with cron {cron_schedule}: {e}")
+            logger.error(f"Error scheduling job ID {schedule_id} for project {project_id} with cron {cron_schedule} in timezone {timezone}: {e}")
 
     def remove_job(self, schedule_id: int):
         try:
