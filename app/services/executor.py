@@ -5,8 +5,16 @@ from app.models.project import Project
 import os
 import git # Import GitPython
 from app.core.logging_config import setup_logging # Import setup_logging
+import sys # Import sys to check platform
 
 logger = setup_logging()
+
+def _get_venv_exec_path(venv_path: str, executable_name: str) -> str:
+    """Returns the path to an executable within a virtual environment, handling OS differences."""
+    if sys.platform == "win32":
+        return os.path.join(venv_path, "Scripts", f"{executable_name}.exe")
+    else:
+        return os.path.join(venv_path, "bin", executable_name)
 
 def sync_project_dependencies(project_path: str, environment_type: str):
     logger.info(f"Syncing dependencies for project at {project_path} using {environment_type}")
@@ -17,9 +25,9 @@ def sync_project_dependencies(project_path: str, environment_type: str):
         venv_path = os.path.join(project_path, ".venv")
         if not os.path.isdir(venv_path):
             logger.info(f"Creating venv at {venv_path}")
-            subprocess.run(["python", "-m", "venv", venv_path], cwd=project_path, check=True)
+            subprocess.run([sys.executable, "-m", "venv", venv_path], cwd=project_path, check=True)
         
-        pip_executable = os.path.join(venv_path, "bin", "pip")
+        pip_executable = _get_venv_exec_path(venv_path, "pip")
         logger.info(f"Installing requirements in venv at {venv_path}")
         subprocess.run([pip_executable, "install", "-r", "requirements.txt"], cwd=project_path, check=True)
     else:
@@ -95,7 +103,7 @@ def execute_script(db: Session, run_id: int):
             command = ["uv", "run", project.main_script]
         elif project.environment_type == "venv":
             venv_path = os.path.join(project_path, ".venv")
-            python_executable = os.path.join(venv_path, "bin", "python")
+            python_executable = _get_venv_exec_path(venv_path, "python")
             command = [python_executable, project.main_script]
         else:
             # This case is already handled in sync_project_dependencies, but as a safeguard:
