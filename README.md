@@ -43,9 +43,8 @@ A lightweight Python Orchestrator Web Tool designed to streamline and automate t
 
 - Python 3.11+ (recommended)
 - `uv` (install with `pip install uv`) or `pip`
-- Docker and Docker Compose (for containerized setup)
 
-### 1. Local Development Setup
+### Local Development Setup
 
 1.  **Clone the repository:**
 
@@ -73,31 +72,6 @@ A lightweight Python Orchestrator Web Tool designed to streamline and automate t
     uv run uvicorn app.main:app --reload
     ```
     The application will be accessible at `http://localhost:8000`.
-
-### 2. Docker Setup (Recommended)
-
-1.  **Ensure Docker is running** on your system.
-
-2.  **Build the Docker image:**
-
-    ```bash
-    docker-compose build
-    ```
-
-3.  **Create a `.env` file** (as described in step 3 of Local Development Setup).
-
-4.  **Run the application using Docker Compose:**
-
-    ```bash
-    docker-compose up
-    ```
-
-    The application will be accessible at `http://localhost:8000`.
-
-5.  **To stop the application:**
-    ```bash
-    docker-compose down
-    ```
 
 ## 🖥️ Usage
 
@@ -130,8 +104,6 @@ PyOrchestrator/
 ├── templates/                # Jinja2 HTML templates
 ├── .env.example              # Example environment variables file
 ├── .gitignore
-├── Dockerfile
-├── docker-compose.yml
 ├── pyproject.toml
 ├── uv.lock
 ├── README.md
