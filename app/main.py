@@ -16,6 +16,7 @@ from app.services.executor import execute_script
 import math # Import math for ceil
 from app.core.logging_config import setup_logging # Import setup_logging
 from app.core.utils import get_timezones # Import get_timezones
+from typing import List # Import List
 
 # Setup logging as early as possible
 logger = setup_logging()
@@ -159,24 +160,37 @@ async def create_schedule_from_form(
     request: Request,
     name: str = Form(...),
     project_id: int = Form(...),
-    cron_schedule: str = Form(...),
     timezone: str = Form("UTC"),
+    schedule_type: str = Form(...),
+    run_days: List[str] = Form([]),
+    run_time: str = Form(None),
+    cron_schedule: str = Form(None),
     db: Session = Depends(get_db)
 ):
+    final_cron_schedule = cron_schedule
+    if schedule_type == "simple":
+        if not run_time or not run_days:
+            raise HTTPException(status_code=400, detail="Run time and at least one run day are required for simple schedules.")
+        hour, minute = run_time.split(':')
+        days_of_week = ",".join(run_days)
+        final_cron_schedule = f"{minute} {hour} * * {days_of_week}"
+    
     schedule_create = schema_schedule.ScheduleCreate(
         name=name,
         project_id=project_id,
-        cron_schedule=cron_schedule,
-        timezone=timezone
+        cron_schedule=final_cron_schedule,
+        timezone=timezone,
+        schedule_type=schedule_type,
+        run_days=",".join(run_days) if run_days else None,
+        run_time=run_time
     )
     db_schedule = crud_schedule.create_schedule(db=db, schedule=schedule_create)
     
-    # Add to scheduler immediately
     scheduler: SchedulerService = request.app.state.scheduler
     scheduler.schedule_job(db_schedule.id, db_schedule.project_id, db_schedule.cron_schedule, db_schedule.timezone)
-    logger.info(f"Schedule '{name}' created and added to scheduler.")
+    logger.info(f"Schedule '{name}' created with cron: {final_cron_schedule}")
 
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
 @app.get("/schedules/{schedule_id}/edit", response_class=HTMLResponse)
 async def edit_schedule_form(request: Request, schedule_id: int, db: Session = Depends(get_db)):
@@ -184,7 +198,7 @@ async def edit_schedule_form(request: Request, schedule_id: int, db: Session = D
     if schedule is None:
         logger.warning(f"Attempted to edit non-existent schedule with ID: {schedule_id}")
         raise HTTPException(status_code=404, detail="Schedule not found")
-    projects_data = crud_project.get_projects(db) # Need projects for the dropdown
+    projects_data = crud_project.get_projects(db)
     timezones = get_timezones()
     logger.info(f"Edit schedule form requested for schedule ID: {schedule_id}")
     return templates.TemplateResponse("edit_schedule.html", {"request": request, "schedule": schedule, "projects": projects_data, "timezones": timezones})
@@ -195,15 +209,29 @@ async def update_schedule_from_form(
     schedule_id: int,
     name: str = Form(...),
     project_id: int = Form(...),
-    cron_schedule: str = Form(...),
     timezone: str = Form("UTC"),
+    schedule_type: str = Form(...),
+    run_days: List[str] = Form([]),
+    run_time: str = Form(None),
+    cron_schedule: str = Form(None),
     db: Session = Depends(get_db)
 ):
+    final_cron_schedule = cron_schedule
+    if schedule_type == "simple":
+        if not run_time or not run_days:
+            raise HTTPException(status_code=400, detail="Run time and at least one run day are required for simple schedules.")
+        hour, minute = run_time.split(':')
+        days_of_week = ",".join(run_days)
+        final_cron_schedule = f"{minute} {hour} * * {days_of_week}"
+
     schedule_update = schema_schedule.ScheduleCreate(
         name=name,
         project_id=project_id,
-        cron_schedule=cron_schedule,
-        timezone=timezone
+        cron_schedule=final_cron_schedule,
+        timezone=timezone,
+        schedule_type=schedule_type,
+        run_days=",".join(run_days) if run_days else None,
+        run_time=run_time
     )
     db_schedule = crud_schedule.update_schedule(db, schedule_id=schedule_id, schedule=schedule_update)
     if db_schedule is None:
@@ -217,9 +245,9 @@ async def update_schedule_from_form(
     except Exception as e:
         logger.error(f"Error removing old job for schedule ID {db_schedule.id} from scheduler: {e}")
     scheduler.schedule_job(db_schedule.id, db_schedule.project_id, db_schedule.cron_schedule, db_schedule.timezone)
-    logger.info(f"Schedule ID {schedule_id} updated and re-added to scheduler.")
+    logger.info(f"Schedule ID {schedule_id} updated and re-added to scheduler with cron: {final_cron_schedule}")
 
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
 @app.post("/schedules/{schedule_id}/delete", response_class=RedirectResponse)
 async def delete_schedule_from_ui(request: Request, schedule_id: int, db: Session = Depends(get_db)):

@@ -8,6 +8,7 @@
 <div class="card">
     <div class="card-body">
         <form action="/schedules/{{ schedule.id }}/edit" method="post">
+            <input type="hidden" id="schedule_type" name="schedule_type" value="{{ schedule.schedule_type }}">
             <div class="mb-3">
                 <label for="name" class="form-label">Schedule Name</label>
                 <input type="text" class="form-control" id="name" name="name" value="{{ schedule.name }}" required>
@@ -20,10 +21,39 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="mb-3">
-                <label for="cron_schedule" class="form-label">Cron Schedule</label>
-                <input type="text" class="form-control" id="cron_schedule" name="cron_schedule" value="{{ schedule.cron_schedule }}" placeholder="e.g., * * * * *" required>
+
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" role="switch" id="advanced_mode_toggle" {% if schedule.schedule_type == 'cron' %}checked{% endif %}>
+                <label class="form-check-label" for="advanced_mode_toggle">Advanced Mode (Cron Expression)</label>
             </div>
+
+            <div id="simple_schedule_fields">
+                <div class="mb-3">
+                    <label class="form-label">Run on Days</label>
+                    <div>
+                        {% set run_days_list = schedule.run_days.split(',') if schedule.run_days else [] %}
+                        {% for day in ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] %}
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="run_days" value="{{ day }}" id="day_{{ day }}" {% if day in run_days_list %}checked{% endif %}>
+                            <label class="form-check-label" for="day_{{ day }}">{{ day }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="run_time" class="form-label">Run at Time</label>
+                    <input type="time" class="form-control" id="run_time" name="run_time" value="{{ schedule.run_time }}">
+                </div>
+            </div>
+
+            <div id="advanced_schedule_fields">
+                <div class="mb-3">
+                    <label for="cron_schedule" class="form-label">Cron Schedule</label>
+                    <input type="text" class="form-control" id="cron_schedule" name="cron_schedule" value="{{ schedule.cron_schedule }}" placeholder="e.g., * * * * *">
+                    <div class="form-text">Use standard cron format. For example, `0 9 * * 1-5` runs at 9 AM on weekdays.</div>
+                </div>
+            </div>
+
             <div class="mb-3">
                 <label for="timezone" class="form-label">Timezone</label>
                 <select class="form-select" id="timezone" name="timezone" required>
@@ -38,4 +68,34 @@
         </form>
     </div>
 </div>
+
+<script>
+    const advancedToggle = document.getElementById('advanced_mode_toggle');
+    const simpleFields = document.getElementById('simple_schedule_fields');
+    const advancedFields = document.getElementById('advanced_schedule_fields');
+    const scheduleTypeInput = document.getElementById('schedule_type');
+    const cronInput = document.getElementById('cron_schedule');
+    const timeInput = document.getElementById('run_time');
+
+    function toggleScheduleMode() {
+        if (advancedToggle.checked) {
+            simpleFields.style.display = 'none';
+            advancedFields.style.display = 'block';
+            scheduleTypeInput.value = 'cron';
+            cronInput.setAttribute('required', 'required');
+            timeInput.removeAttribute('required');
+        } else {
+            simpleFields.style.display = 'block';
+            advancedFields.style.display = 'none';
+            scheduleTypeInput.value = 'simple';
+            cronInput.removeAttribute('required');
+            timeInput.setAttribute('required', 'required');
+        }
+    }
+
+    advancedToggle.addEventListener('change', toggleScheduleMode);
+
+    // Initial call
+    toggleScheduleMode();
+</script>
 {% endblock %}

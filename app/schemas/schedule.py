@@ -5,6 +5,9 @@ class ScheduleBase(BaseModel):
     project_id: int
     cron_schedule: str
     timezone: str = "UTC"
+    schedule_type: str = "cron"
+    run_days: str | None = None
+    run_time: str | None = None
 
 class ScheduleCreate(ScheduleBase):
     pass
