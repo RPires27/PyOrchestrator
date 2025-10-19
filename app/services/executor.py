@@ -25,11 +25,17 @@ def sync_project_dependencies(project_path: str, environment_type: str):
         venv_path = os.path.join(project_path, ".venv")
         if not os.path.isdir(venv_path):
             logger.info(f"Creating venv at {venv_path}")
-            subprocess.run([sys.executable, "-m", "venv", venv_path], cwd=project_path, check=True)
+            # Use 'py' launcher on Windows, 'python' on other systems
+            python_launcher = "py" if sys.platform == "win32" else "python"
+            subprocess.run([python_launcher, "-m", "venv", venv_path], cwd=project_path, check=True)
         
         pip_executable = _get_venv_exec_path(venv_path, "pip")
         logger.info(f"Installing requirements in venv at {venv_path}")
-        subprocess.run([pip_executable, "install", "-r", "requirements.txt"], cwd=project_path, check=True)
+        # Check for requirements.txt before trying to install
+        if os.path.exists(os.path.join(project_path, "requirements.txt")):
+            subprocess.run([pip_executable, "install", "-r", "requirements.txt"], cwd=project_path, check=True)
+        else:
+            logger.info("No requirements.txt found, skipping dependency installation.")
     else:
         raise ValueError(f"Unsupported environment type: {environment_type}")
 
